@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F5F52">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WOYZ Notes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>WOYZ Notes Demo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F5F3;
+    --panel:#FFFFFF;
+    --border:#E2E5E1;
+    --ink:#1B231F;
+    --muted:#6E786F;
+    --teal:#1F5F52;
+    --teal-deep:#153F37;
+    --teal-wash:#EAF2EF;
+    --red:#D6472F;
+    --red-wash:#FBEAE6;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  .app{height:100dvh;display:grid;grid-template-columns:296px minmax(0,1fr);overflow:hidden;background:#fff;}
+  .sidebar{min-height:0;display:flex;flex-direction:column;gap:14px;padding:20px 16px;background:#fff;border-right:1px solid var(--border);overflow:hidden;}
+  .brand-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch;margin:-20px -16px 0;padding:14px;background:#FBFCFB;}
+  .brand-pill{height:58px;border:4px solid #F45155;border-radius:999px;background:#17171D;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;font-weight:700;font-size:24px;letter-spacing:1px;box-shadow:0 7px 18px -8px rgba(18,18,24,.5);cursor:pointer;font-family:inherit;}
+  .brand-pill:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(18,18,24,.55);}
+  .brand-pill:active{transform:translateY(0) scale(.99);}
+  .brand-dot{width:28px;height:28px;border-radius:50%;background:#F45155;border:7px solid #452126;flex:0 0 auto;}
+  .note-btn{height:58px;border:0;border-radius:13px;background:var(--teal);color:#fff;font:700 20px 'Inter',sans-serif;cursor:pointer;box-shadow:0 12px 24px -22px var(--teal-deep);}
+  .privacy-row{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:14px;align-items:center;}
+  .privacy-label{height:42px;border:0;border-radius:8px;background:var(--teal);color:#fff;font:700 13px 'Inter',sans-serif;cursor:pointer;}
+  .privacy-switch{width:58px;height:34px;border:1px solid rgba(31,95,82,.24);border-radius:999px;background:#EFF5F2;box-shadow:0 4px 11px -8px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,255,255,.72);position:relative;cursor:pointer;}
+  .privacy-switch::after{content:"";position:absolute;top:3px;left:3px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 5px 11px -7px rgba(0,0,0,.75);transition:transform .16s ease;}
+  .privacy-switch.active{background:var(--teal);}
+  .privacy-switch.active::after{transform:translateX(24px);}
+  .visit-toggle{height:48px;display:flex;align-items:center;gap:5px;padding:5px;border:1px solid #D8E1E7;border-radius:12px;background:#fff;}
+  .visit-toggle button{height:38px;flex:1;border:0;border-radius:9px;background:transparent;color:var(--muted);font:700 14px 'Inter',sans-serif;cursor:pointer;}
+  .visit-toggle button.active{background:var(--teal);color:#fff;}
+  .search{height:45px;border:1.5px solid #D8E1E7;border-radius:12px;padding:0 14px;font:700 14px 'Inter',sans-serif;outline:none;}
+  .search:focus{border-color:#8FB9AC;box-shadow:0 0 0 4px rgba(143,185,172,.18);}
+  .entry-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;padding-right:3px;}
+  .entry{position:relative;width:100%;border:1px solid transparent;border-bottom-color:rgba(226,229,225,.9);border-radius:11px;background:transparent;padding:10px 38px 10px 10px;display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;color:var(--ink);font-family:inherit;}
+  .entry:hover{background:#F6F8F6;}
+  .entry.active{background:var(--teal-wash);border-color:rgba(31,95,82,.35);color:var(--teal-deep);}
+  .entry-avatar{width:36px;height:36px;border-radius:50%;background:#E9F2EE;color:var(--teal);display:grid;place-items:center;font:800 14px 'IBM Plex Mono',monospace;flex:0 0 auto;}
+  .entry.active .entry-avatar{background:var(--teal);color:#fff;}
+  .entry-text{min-width:0;flex:1;}
+  .entry-name{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .entry-meta{margin-top:2px;color:var(--muted);font:700 11px 'IBM Plex Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .entry-owner{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:rgba(31,95,82,.74);font:900 10.5px 'IBM Plex Mono',monospace;}
+  .main{min-width:0;min-height:0;display:flex;flex-direction:column;background:#fff;}
+  .topbar{min-height:134px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-content:center;justify-content:flex-end;align-items:center;padding:8px 14px;background:#fff;}
+  .doc-actions{order:1;flex:1 1 100%;width:100%;display:flex;gap:10px;align-items:center;justify-content:space-between;overflow-x:auto;overflow-y:hidden;min-width:0;scrollbar-width:none;}
+  .doc-actions::-webkit-scrollbar{display:none;}
+  .mode-btn{flex:1 1 0;min-width:0;height:42px;border:0;border-radius:10px;background:var(--teal);color:#fff;padding:0 14px;font:700 12px 'Inter',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mode-btn.inert{background:#DDEFE8;color:#7A8D84;border:1px solid #C7DED5;}
+  .date-actions{order:2;display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;}
+  .day-btn,.save-btn{height:42px;border:1px solid var(--teal-deep);border-radius:10px;background:var(--teal);color:#fff;padding:0 18px;font:700 14px 'Inter',sans-serif;box-shadow:0 6px 14px -10px var(--teal-deep);}
+  .date-step,.date-box,.copy-btn,.delete-btn{height:42px;border:1.5px solid #D8E1E7;border-radius:10px;background:#fff;color:#17212B;padding:0 14px;font:700 14px 'Inter',sans-serif;}
+  .date-step{width:42px;background:#EEF3F7;font-size:24px;line-height:1;}
+  .copy-btn{color:var(--teal-deep);border-color:rgba(31,95,82,.3);}
+  .delete-btn{background:var(--red);border-color:var(--red);color:#fff;}
+  .settings-btn{width:42px;height:42px;border:1.5px solid #D8E1E7;border-radius:10px;background:#fff;color:var(--muted);display:grid;place-items:center;cursor:pointer;}
+  .main-scroll{flex:1;min-height:0;overflow:auto;padding:38px 52px 80px;}
+  .note-title{margin:0 0 24px;font:600 34px 'Fraunces',serif;}
+  .note{max-width:980px;white-space:pre-wrap;font:16px/1.55 'Inter',system-ui,sans-serif;color:#25302B;}
+  .note strong{font-weight:700;color:#1E2521;}
+  .empty{color:var(--muted);font-weight:800;}
+  .voice-dock{display:none;position:fixed;left:18px;bottom:22px;z-index:20;width:min(9cm,calc(100vw - 28px));min-height:5.7cm;padding:13px 16px;border-radius:18px;background:#1B1B1D;color:#F7F7FB;box-shadow:0 20px 46px rgba(16,24,43,.28);}
+  .voice-dock.visible{display:grid;grid-template-rows:auto 1fr;gap:8px;}
+  .voice-dock-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .voice-dock-title{display:inline-flex;align-items:center;gap:8px;color:#FF514A;font-size:13px;font-weight:700;}
+  .voice-dock-title::before{content:"";width:7px;height:7px;border-radius:999px;background:#FF514A;box-shadow:0 0 0 4px rgba(255,81,74,.1);}
+  .voice-close{width:28px;height:28px;border:0;border-radius:8px;background:#2F2F32;color:#F7F7FB;cursor:pointer;font-size:18px;line-height:1;}
+  .voice-dock-body{display:grid;grid-template-rows:auto auto auto auto;justify-items:center;align-content:center;gap:12px;}
+  .voice-level{width:76%;height:30px;display:grid;grid-template-columns:repeat(28,1fr);gap:3px;align-items:end;}
+  .voice-level span{height:4px;border-radius:999px 999px 3px 3px;background:rgba(255,81,74,.22);opacity:.65;transition:height .08s linear,background .08s linear,opacity .08s linear;}
+  .voice-dock.recording .voice-level span.active{background:#FF514A;opacity:1;}
+  .voice-dock.recording .voice-level span:nth-child(3n+1).active{height:12px;}
+  .voice-dock.recording .voice-level span:nth-child(3n+2).active{height:22px;}
+  .voice-dock.recording .voice-level span:nth-child(3n).active{height:28px;}
+  .voice-timer{color:#F7F7FB;font-family:'IBM Plex Mono',monospace;font-size:34px;line-height:1;font-weight:700;letter-spacing:.04em;}
+  .voice-actions{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .voice-action{width:60px;height:60px;border:0;border-radius:999px;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 12px 26px rgba(0,0,0,.22);}
+  .voice-action.start{background:#FF514A;}
+  .voice-action.extend{background:#2F2F32;color:#F7F7FB;font:700 17px 'Inter',sans-serif;}
+  .voice-action.stop{background:#2F2F32;color:#FF514A;}
+  .voice-status{width:100%;min-height:18px;color:#C9C9CF;text-align:center;font-size:12px;font-weight:700;}
+  .mobile-bar{display:none;}
+  @media (max-width:760px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:min(330px,88vw);z-index:5;transform:translateX(-105%);transition:transform .18s ease;box-shadow:20px 0 45px -35px rgba(0,0,0,.5);}
+    .app.sidebar-open .sidebar{transform:translateX(0);}
+    .mobile-bar{display:flex;height:56px;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:#fff;font-weight:900;letter-spacing:.04em;}
+    .menu-btn{width:38px;height:38px;border:0;background:transparent;display:grid;gap:5px;align-content:center;padding:8px;cursor:pointer;}
+    .menu-btn span{height:2px;background:#666;border-radius:999px;}
+    .topbar{min-height:auto;padding:10px 14px;}
+    .doc-actions{display:none;}
+    .date-actions{justify-content:space-between;}
+    .day-btn{display:none;}
+    .main-scroll{padding:26px 20px 86px;background:#F8F9F7;}
+    .note-title{font-size:25px;text-transform:uppercase;letter-spacing:.08em;color:#7E827C;font-family:'Inter',sans-serif;font-weight:900;}
+    .note{background:#fff;border-radius:16px;padding:20px;font-size:16px;box-shadow:0 12px 30px -28px rgba(0,0,0,.4);}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand-row">
+      <button class="brand-pill" id="voiceBtn" type="button" aria-label="Create demo voice note"><span class="brand-dot"></span><span>WOYZ</span></button>
+      <button class="note-btn" id="newNoteBtn">+ Note</button>
+    </div>
+    <div class="privacy-row">
+      <button class="privacy-label" id="anonymizeLabel" type="button">Anonymize</button>
+      <button class="privacy-switch" id="anonymizeToggle" type="button" role="switch" aria-checked="false" aria-label="Toggle anonymized display"></button>
+    </div>
+    <div class="visit-toggle" id="visitToggle">
+      <button class="active" data-type="OP">OP</button>
+      <button data-type="IP">IP</button>
+    </div>
+    <input class="search" id="searchInput" placeholder="Search name or UHID" autocomplete="off">
+    <div class="entry-list" id="entryList"></div>
+  </aside>
+  <main class="main">
+    <div class="mobile-bar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open list"><span></span><span></span><span></span></button>
+      <div>WOYZ Notes</div>
+      <div style="width:38px"></div>
+    </div>
+    <div class="topbar">
+      <div class="doc-actions">
+        <button class="mode-btn" id="addOnBtn">Add On</button>
+        <button class="mode-btn" id="certificateBtn">Certificate</button>
+        <button class="mode-btn" id="replyBtn">Reply Letter</button>
+        <button class="mode-btn inert">Initial Assessment</button>
+        <button class="mode-btn inert">Discharge Summary</button>
+        <button class="mode-btn inert">Treatment Summary</button>
+        <button class="mode-btn inert">Cross Consultation</button>
+        <button class="mode-btn inert">OT Notes</button>
+        <button class="mode-btn inert">Reports</button>
+      </div>
+      <div class="date-actions">
+        <button class="day-btn" id="dayBtn">Tuesday</button>
+        <button class="date-step" id="prevBtn">&#8249;</button>
+        <button class="date-box" id="dateBtn">18/08/2026</button>
+        <button class="date-step" id="nextBtn">&#8250;</button>
+        <button class="save-btn" id="saveBtn">Save</button>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+        <button class="delete-btn" id="deleteBtn">Delete</button>
+        <button class="settings-btn" id="settingsBtn" aria-label="Settings" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 13.5a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19.5a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H4.5a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H10.5a1.65 1.65 0 0 0 1-1.51V4.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V10.5a1.65 1.65 0 0 0 1.51 1H19.5a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <section class="main-scroll">
+      <h1 class="note-title" id="noteTitle">Visit Note</h1>
+      <div class="note" id="noteBody"></div>
+    </section>
+  </main>
+</div>
+<div class="voice-dock" id="voiceDock" aria-live="polite">
+  <div class="voice-dock-head">
+    <div class="voice-dock-title">Voice note draft</div>
+    <button class="voice-close" id="voiceCloseBtn" aria-label="Close voice panel">&times;</button>
+  </div>
+  <div class="voice-dock-body">
+    <div class="voice-level" id="voiceLevel" aria-label="Voice activity"></div>
+    <div class="voice-timer" id="voiceTimer">05:00</div>
+    <div class="voice-actions">
+      <button class="voice-action start" id="voiceStartBtn" aria-label="Start demo recording">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="voice-action extend" id="voiceExtendBtn" aria-label="Extend demo recording by five minutes">+5</button>
+      <button class="voice-action stop" id="voiceStopBtn" aria-label="Stop demo recording">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+      </button>
+    </div>
+    <div class="voice-status" id="voiceStatus">Press play to start recording</div>
+  </div>
+</div>
+<script>
+let demoNotes = [
+  {
+    id:'op-10', type:'OP', owner:'GK', name:'Bishop Sebastian', uhid:'NIL', sex:'M', age:'NIL', date:'2026-08-18', title:'Visit Note',
+    text:`Patient Name: Bishop Sebastian
+Age: NIL
+UHID: NIL
+Sex: Male
+
+Presenting Complaint:
+Intermittent headache and giddiness.
+
+History of Present Illness:
+Patient reports episodic headache for 2 weeks. No vomiting or focal neurological deficit reported.
+
+Past Medical or Surgical History:
+NIL
+
+Allergies:
+NIL
+
+Review of Investigations:
+1. MRI Brain done on 12th August 2026: No acute infarct or intracranial bleed.
+2. Blood investigations on 18th August 2026:
+Hemoglobin: 12.8 g/dL
+Total count: 7600 cells/cumm
+Platelet count: 2.4 lakh/cumm
+Creatinine: 0.9 mg/dL
+
+Current Medications:
+1. Tab Amlodipine 5 mg once daily
+2. Tab Rosuvastatin 10 mg at bedtime
+
+Diagnosis:
+Headache under evaluation.
+
+Treatment Plan:
+Continue medications and review with reports.`
+  },
+  {
+    id:'op-9', type:'OP', owner:'SJ', name:'Bindu Sabu', uhid:'NIL', sex:'NIL', age:'NIL', date:'2026-08-18', title:'Visit Note',
+    text:`Patient Name: Bindu Sabu
+Age: NIL
+UHID: NIL
+Sex: NIL
+
+Presenting Complaint:
+Low back pain.
+
+History of Present Illness:
+Low back pain radiating to left lower limb for 1 month.
+
+Review of Investigations:
+1. MRI Lumbosacral Spine done on 10th August 2026: L4-L5 diffuse disc bulge indenting the thecal sac.
+
+Current Medications:
+1. Tab Pregabalin 75 mg at bedtime
+2. Tab Etoricoxib 60 mg once daily after food
+
+Diagnosis:
+Lumbar radiculopathy.
+
+Treatment Plan:
+Physiotherapy and review after 2 weeks.`
+  },
+  {
+    id:'op-8', type:'OP', owner:'SJ', name:'Thankamma K A', uhid:'17166542', sex:'F', age:'73', date:'2026-08-18', title:'Visit Note',
+    text:`Patient Name: Thankamma K A
+Age: 73
+UHID: 17166542
+Sex: Female
+
+Presenting Complaint:
+Memory difficulty.
+
+History of Present Illness:
+Progressive forgetfulness for 1 year. Needs supervision for medicines.
+
+Examination Findings:
+Higher mental function assessment suggests impaired recent memory.
+
+Current Medications:
+1. Tab Donepezil 5 mg at night
+
+Diagnosis:
+Cognitive impairment.
+
+Treatment Plan:
+Caregiver counselling and follow-up.`
+  },
+  {
+    id:'ip-5', type:'IP', owner:'GK', name:'Rajeswari K A', uhid:'26822958', sex:'F', age:'65', date:'2026-08-18', title:'Visit Note',
+    text:`Patient Name: Rajeswari K A
+Age: 65
+UHID: 26822958
+Sex: Female
+
+Presenting Complaint:
+Acute onset right-sided weakness.
+
+History of Present Illness:
+Admitted with right hemiparesis noticed on waking up. No seizure reported.
+
+Review of Investigations:
+1. CT Brain done on 18th August 2026: No intracranial hemorrhage.
+2. Blood investigations on 18th August 2026:
+Hemoglobin: 13.1 g/dL
+RBS: 146 mg/dL
+Creatinine: 1.0 mg/dL
+
+Current Medications:
+1. Tab Aspirin 150 mg once daily
+2. Tab Atorvastatin 40 mg at bedtime
+
+Diagnosis:
+Acute ischemic stroke.
+
+Treatment Plan:
+Stroke unit care and monitoring.`
+  },
+  {
+    id:'ip-4', type:'IP', owner:'SJ', name:'Edwin Sebastian', uhid:'26822894', sex:'M', age:'31', date:'2026-08-18', title:'Review Note',
+    text:`Patient Name: Edwin Sebastian
+Age: 31
+UHID: 26822894
+Sex: Male
+
+Presenting Complaint:
+Breakthrough seizure.
+
+History of Present Illness:
+Known epilepsy. One generalized tonic-clonic seizure yesterday.
+
+Current Medications:
+1. Tab Levetiracetam 500 mg twice daily
+
+Review Note:
+Review of Investigations:
+1. EEG done on 17th August 2026: Generalized epileptiform discharges.
+
+Current Medications:
+1. Tab Levetiracetam increased to 750 mg twice daily`
+  }
+];
+
+let activeType = 'OP';
+let selectedDate = '2026-08-18';
+let activeId = null;
+let query = '';
+let anonymizeEnabled = false;
+const GEMINI_KEY_STORAGE = 'woyz_gemini_authorization_key';
+
+const app = document.getElementById('app');
+const entryList = document.getElementById('entryList');
+const visitToggle = document.getElementById('visitToggle');
+const searchInput = document.getElementById('searchInput');
+const noteTitle = document.getElementById('noteTitle');
+const noteBody = document.getElementById('noteBody');
+const dayBtn = document.getElementById('dayBtn');
+const dateBtn = document.getElementById('dateBtn');
+const anonymizeLabel = document.getElementById('anonymizeLabel');
+const anonymizeToggle = document.getElementById('anonymizeToggle');
+const voiceDock = document.getElementById('voiceDock');
+const voiceCloseBtn = document.getElementById('voiceCloseBtn');
+const voiceStartBtn = document.getElementById('voiceStartBtn');
+const voiceStopBtn = document.getElementById('voiceStopBtn');
+const voiceExtendBtn = document.getElementById('voiceExtendBtn');
+const voiceTimer = document.getElementById('voiceTimer');
+const voiceStatus = document.getElementById('voiceStatus');
+const voiceLevel = document.getElementById('voiceLevel');
+let voiceSeconds = 300;
+let voiceInterval = null;
+let voiceRecording = false;
+
+voiceLevel.innerHTML = Array.from({length:28}, () => '<span></span>').join('');
+
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+}
+
+function richNoteHtml(text){
+  return escapeHtml(text)
+    .split('\n')
+    .map(line => line.replace(/^([^:\n]{2,90}:)(\s*)/, '<strong>$1</strong>$2'))
+    .join('<br>');
+}
+
+function anonymizedCode(note){
+  const seed = String(note?.id || note?.name || 'demo');
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash = ((hash * 31) + seed.charCodeAt(i)) >>> 0;
+  return `Patient ${String(hash % 10000).padStart(4,'0')}`;
+}
+
+function anonymizedText(text, note){
+  if (!anonymizeEnabled) return text;
+  const code = anonymizedCode(note);
+  let output = String(text || '');
+  if (note?.name) output = output.replace(new RegExp(note.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), code);
+  if (note?.uhid && note.uhid !== 'NIL') output = output.replace(new RegExp(note.uhid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), 'hidden');
+  output = output
+    .replace(/^Patient Name:\s*([^\n]*)/gim, `Patient Name: ${code}`)
+    .replace(/^UHID:\s*([^\n]*)/gim, 'UHID: hidden');
+  return output;
+}
+
+function filteredNotes(){
+  const q = query.trim().toLowerCase();
+  return demoNotes
+    .filter(note => note.type === activeType && note.date === selectedDate)
+    .filter(note => !q || [note.name,note.uhid,note.sex,note.age,note.owner].join(' ').toLowerCase().includes(q));
+}
+
+function meta(note){
+  if (note.isDraft) return note.createdAtLabel || 'Draft';
+  return `UHID ${anonymizeEnabled ? 'hidden' : (note.uhid || 'NIL')} · ${note.sex || 'NIL'} · ${note.age || 'NIL'}`;
+}
+
+function draftTemplate(mode){
+  if (mode === 'Medical certificate'){
+    return {
+      title:'Medical certificate',
+      text:`Patient Name: NIL
+Age: NIL
+UHID: NIL
+Date: NIL
+Sex: NIL
+
+Medical Certificate:
+This is to certify that `
+    };
+  }
+  if (mode === 'Reply letter'){
+    return {
+      title:'Reply Letter',
+      text:`Patient Name: NIL
+Age: NIL
+UHID: NIL
+
+To,
+
+
+
+Thank you`
+    };
+  }
+  return {
+    title:'Visit Note',
+    text:`Patient Name:
+Age:
+UHID:
+Sex:`
+  };
+}
+
+function createDraft(mode = 'Visit Note', source = 'manual'){
+  const template = draftTemplate(mode);
+  const now = new Date();
+  const id = `draft-${Date.now()}`;
+  demoNotes.unshift({
+    id,
+    type:activeType,
+    owner:'SJ',
+    name:mode === 'Visit Note' ? `${source === 'voice' ? 'Voice note' : 'Visit Note'} draft` : `Visit Note draft (${mode})`,
+    uhid:'NIL',
+    sex:'NIL',
+    age:'NIL',
+    date:selectedDate,
+    title:template.title,
+    text:template.text,
+    isDraft:true,
+    createdAtLabel:now.toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+  });
+  activeId = id;
+  render();
+  return id;
+}
+
+function updateVoiceTimer(){
+  const minutes = String(Math.floor(voiceSeconds / 60)).padStart(2,'0');
+  const seconds = String(voiceSeconds % 60).padStart(2,'0');
+  voiceTimer.textContent = `${minutes}:${seconds}`;
+}
+
+function animateVoiceLevel(){
+  const bars = [...voiceLevel.querySelectorAll('span')];
+  bars.forEach((bar, index) => {
+    const active = voiceRecording && (index + Math.floor(Date.now() / 120)) % 3 !== 0;
+    bar.classList.toggle('active', active);
+  });
+}
+
+function openVoiceDock(){
+  createDraft('Visit Note', 'voice');
+  voiceSeconds = 300;
+  updateVoiceTimer();
+  voiceDock.classList.add('visible');
+  voiceDock.classList.remove('recording');
+  voiceRecording = false;
+  voiceStatus.textContent = 'Press play to start recording';
+  clearInterval(voiceInterval);
+  voiceInterval = setInterval(() => {
+    if (voiceRecording && voiceSeconds > 0) voiceSeconds -= 1;
+    updateVoiceTimer();
+    animateVoiceLevel();
+  }, 1000);
+}
+
+function closeVoiceDock(){
+  voiceDock.classList.remove('visible','recording');
+  voiceRecording = false;
+  clearInterval(voiceInterval);
+  voiceInterval = null;
+  animateVoiceLevel();
+}
+
+function stopDemoRecording(){
+  if (!voiceDock.classList.contains('visible')) return;
+  voiceStatus.textContent = 'Creating your note...';
+  voiceRecording = false;
+  voiceDock.classList.remove('recording');
+  setTimeout(() => {
+    const note = demoNotes.find(item => item.id === activeId);
+    if (note){
+      note.isDraft = false;
+      note.name = 'Demo Voice Patient';
+      note.uhid = 'DEMO-VOICE';
+      note.sex = 'F';
+      note.age = '42';
+      note.text = `Patient Name: Demo Voice Patient
+Age: 42
+UHID: DEMO-VOICE
+Sex: Female
+
+Presenting Complaint:
+Demo voice note generated from the WOYZ recording panel.
+
+History of Present Illness:
+This demo shows how the real app opens the voice panel, records, and then creates a visit note.
+
+Review of Investigations:
+1. MRI Brain done on 18th August 2026: No acute abnormality.
+
+Current Medications:
+1. Tab Demo 5 mg once daily
+
+Diagnosis:
+Demo visit note.
+
+Treatment Plan:
+Review as advised.`;
+    }
+    closeVoiceDock();
+    render();
+  }, 700);
+}
+
+function renderList(){
+  const notes = filteredNotes();
+  entryList.innerHTML = '';
+  if (!notes.length){
+    entryList.innerHTML = '<div class="empty">No demo records.</div>';
+    activeId = null;
+    renderNote();
+    return;
+  }
+  if (!activeId || !notes.some(note => note.id === activeId)) activeId = notes[0].id;
+  notes.forEach((note, index) => {
+    const button = document.createElement('button');
+    button.className = `entry ${note.id === activeId ? 'active' : ''}`;
+    button.innerHTML = `
+      <span class="entry-avatar">${notes.length - index}</span>
+      <span class="entry-text">
+        <span class="entry-name">${escapeHtml(anonymizeEnabled ? anonymizedCode(note) : note.name)}</span>
+        <span class="entry-meta">${escapeHtml(meta(note))}</span>
+      </span>
+      <span class="entry-owner">${escapeHtml(note.owner)}</span>
+    `;
+    button.addEventListener('click', () => {
+      activeId = note.id;
+      app.classList.remove('sidebar-open');
+      render();
+    });
+    entryList.appendChild(button);
+  });
+}
+
+function renderNote(){
+  const note = filteredNotes().find(item => item.id === activeId);
+  if (!note){
+    noteTitle.textContent = 'Visit Note';
+    noteBody.innerHTML = '<div class="empty">Select a demo patient.</div>';
+    return;
+  }
+  noteTitle.textContent = note.title;
+  noteBody.innerHTML = richNoteHtml(anonymizedText(note.text, note));
+}
+
+function updateDate(){
+  const date = new Date(`${selectedDate}T00:00:00`);
+  dayBtn.textContent = date.toLocaleDateString('en-US',{weekday:'long'});
+  dateBtn.textContent = date.toLocaleDateString('en-GB');
+}
+
+function render(){
+  visitToggle.querySelectorAll('button').forEach(button => button.classList.toggle('active', button.dataset.type === activeType));
+  anonymizeToggle.classList.toggle('active', anonymizeEnabled);
+  anonymizeToggle.setAttribute('aria-checked', anonymizeEnabled ? 'true' : 'false');
+  updateDate();
+  renderList();
+  renderNote();
+}
+
+visitToggle.addEventListener('click', event => {
+  const button = event.target.closest('[data-type]');
+  if (!button) return;
+  activeType = button.dataset.type;
+  activeId = null;
+  render();
+});
+
+searchInput.addEventListener('input', () => {
+  query = searchInput.value;
+  activeId = null;
+  render();
+});
+
+function toggleAnonymize(){
+  anonymizeEnabled = !anonymizeEnabled;
+  render();
+}
+
+anonymizeLabel.addEventListener('click', toggleAnonymize);
+anonymizeToggle.addEventListener('click', toggleAnonymize);
+
+document.getElementById('menuBtn').addEventListener('click', () => app.classList.add('sidebar-open'));
+function shiftDate(days){
+  const date = new Date(`${selectedDate}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  selectedDate = date.toISOString().slice(0,10);
+  activeId = null;
+  render();
+}
+
+document.getElementById('prevBtn').addEventListener('click', () => shiftDate(-1));
+document.getElementById('nextBtn').addEventListener('click', () => shiftDate(1));
+document.getElementById('dateBtn').addEventListener('click', () => {
+  selectedDate = '2026-08-18';
+  activeId = null;
+  render();
+});
+document.getElementById('newNoteBtn').addEventListener('click', () => createDraft('Visit Note'));
+document.getElementById('voiceBtn').addEventListener('click', openVoiceDock);
+voiceStartBtn.addEventListener('click', () => {
+  voiceRecording = !voiceRecording;
+  voiceDock.classList.toggle('recording', voiceRecording);
+  voiceStatus.textContent = voiceRecording ? 'Recording in progress...' : 'Recording paused';
+  voiceStartBtn.innerHTML = voiceRecording
+    ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>'
+    : '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  animateVoiceLevel();
+});
+voiceExtendBtn.addEventListener('click', () => {
+  voiceSeconds += 300;
+  updateVoiceTimer();
+  voiceStatus.textContent = 'Recording extended by 5 minutes';
+});
+voiceStopBtn.addEventListener('click', stopDemoRecording);
+voiceCloseBtn.addEventListener('click', closeVoiceDock);
+document.getElementById('addOnBtn').addEventListener('click', () => alert('Demo add-on: investigations and medications are shown in numbered format.'));
+document.getElementById('certificateBtn').addEventListener('click', () => {
+  createDraft('Medical certificate');
+});
+document.getElementById('replyBtn').addEventListener('click', () => {
+  createDraft('Reply letter');
+});
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  const hasKey = Boolean(localStorage.getItem(GEMINI_KEY_STORAGE));
+  const key = window.prompt(`${hasKey ? 'Authorization key is already saved.' : 'Add authorization key.'}\nPaste a new key to save it in this browser.`);
+  if (key === null) return;
+  const cleanKey = key.trim();
+  if (!cleanKey) return;
+  localStorage.setItem(GEMINI_KEY_STORAGE, cleanKey);
+  window.alert('Authorization key saved for this browser.');
+});
+document.getElementById('saveBtn').addEventListener('click', event => {
+  const original = event.currentTarget.textContent;
+  event.currentTarget.textContent = 'Saved';
+  setTimeout(() => event.currentTarget.textContent = original, 900);
+});
+document.getElementById('copyBtn').addEventListener('click', async event => {
+  const text = noteBody.innerText || '';
+  try{ await navigator.clipboard.writeText(text); }catch(error){}
+  const original = event.currentTarget.textContent;
+  event.currentTarget.textContent = 'Copied';
+  setTimeout(() => event.currentTarget.textContent = original, 900);
+});
+document.getElementById('deleteBtn').addEventListener('click', () => {
+  const note = demoNotes.find(item => item.id === activeId);
+  if (!note) return;
+  if (!window.confirm(`Delete ${note.name}?`)) return;
+  demoNotes = demoNotes.filter(item => item.id !== activeId);
+  activeId = null;
+  render();
+});
+
+render();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js?v=169', {updateViaCache:'none'}).catch(error => {
+      console.warn('Service worker registration failed:', error);
+    });
+  });
+}
+</script>
+</body>
+</html>

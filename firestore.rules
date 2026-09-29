@@ -1,0 +1,163 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null
+        && (
+          request.auth.uid == "kzlnh5rBzpTlYEqF7Ou35F1YWaa2"
+          || request.auth.token.email == "drgigy@gmail.com"
+        );
+    }
+
+    function isActivityLogAdmin() {
+      return request.auth != null
+        && request.auth.token.email == "aster-admin@woyz.in";
+    }
+
+    function sharedWith(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.sharedWith;
+    }
+
+    function isMappedTo(userId) {
+      return request.auth != null
+        && request.auth.uid in sharedWith(userId);
+    }
+
+    function userProfileFields() {
+      return [
+        "credentialName",
+        "credentialUpdatedAt",
+        "doctorCredentialName",
+        "doctorCredentialEmployeeId",
+        "doctorCredentialUpdatedAt",
+        "prescriptionLayout",
+        "prescriptionLayoutUpdatedAt",
+        "email",
+        "emailUpdatedAt"
+      ];
+    }
+
+    function mappingFields() {
+      return [
+        "groupIds",
+        "adminGroupIds",
+        "adminSharedWith",
+        "sharedWith",
+        "mappingUpdatedAt",
+        "mappingUpdatedBy"
+      ];
+    }
+
+    match /users/{userId} {
+      allow read: if signedInAs(userId) || isAdmin() || isActivityLogAdmin() || isMappedTo(userId);
+      allow create: if signedInAs(userId)
+        && request.resource.data.keys().hasOnly(userProfileFields());
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(mappingFields())
+        && request.resource.data.mappingUpdatedBy == request.auth.uid;
+      allow update: if signedInAs(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userProfileFields());
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(mappingFields())
+        && request.resource.data.mappingUpdatedBy == request.auth.uid;
+      allow delete: if false;
+
+      match /notes/{noteId} {
+        allow read: if signedInAs(userId) || isAdmin() || isMappedTo(userId);
+        allow delete: if !isAdmin() && (signedInAs(userId) || isMappedTo(userId));
+
+        allow create: if signedInAs(userId)
+          && request.resource.data.visitDate is string
+          && request.resource.data.isDraft is bool
+          && request.resource.data.transcription is string;
+
+        allow update: if (signedInAs(userId) || isAdmin() || isMappedTo(userId))
+          && request.resource.data.visitDate is string
+          && request.resource.data.isDraft is bool
+          && request.resource.data.transcription is string;
+
+        allow update: if (isAdmin() || isMappedTo(userId))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["adminCopiedAt", "adminCopiedBy"])
+          && request.resource.data.adminCopiedBy == request.auth.uid
+          && request.resource.data.adminCopiedAt is timestamp;
+
+        allow update: if (isAdmin() || isMappedTo(userId))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["transcription", "adminEditedAt", "adminEditedBy"])
+          && request.resource.data.transcription is string
+          && request.resource.data.adminEditedBy == request.auth.uid
+          && request.resource.data.adminEditedAt is timestamp;
+      }
+    }
+
+    match /groups/{groupId} {
+      allow read: if isAdmin()
+        || (request.auth != null && request.auth.uid in resource.data.memberUids);
+      allow create, update: if isAdmin()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() >= 1
+        && request.resource.data.memberUids.size() <= 30
+        && request.resource.data.adminEmails is list
+        && request.resource.data.adminEmails.size() >= 1
+        && request.resource.data.adminEmails.size() <= 30
+        && request.resource.data.mappingUpdatedBy == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow read: if isAdmin() || isActivityLogAdmin();
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "action",
+          "page",
+          "userId",
+          "email",
+          "noteId",
+          "noteOwnerUid",
+          "noteType",
+          "patientName",
+          "uhid",
+          "visitDate",
+          "visitType",
+          "geminiModel",
+          "recordingDuration",
+          "geminiAttempts",
+          "createdAt"
+        ])
+        && request.resource.data.action is string
+        && request.resource.data.action.size() > 0
+        && request.resource.data.action.size() <= 80
+        && request.resource.data.page is string
+        && request.resource.data.page.size() <= 40
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 160
+        && request.resource.data.createdAt is timestamp
+        && (!("noteId" in request.resource.data) || (request.resource.data.noteId is string && request.resource.data.noteId.size() <= 120))
+        && (!("noteOwnerUid" in request.resource.data) || (request.resource.data.noteOwnerUid is string && request.resource.data.noteOwnerUid.size() <= 120))
+        && (!("noteType" in request.resource.data) || (request.resource.data.noteType is string && request.resource.data.noteType.size() <= 120))
+        && (!("patientName" in request.resource.data) || (request.resource.data.patientName is string && request.resource.data.patientName.size() <= 160))
+        && (!("uhid" in request.resource.data) || (request.resource.data.uhid is string && request.resource.data.uhid.size() <= 80))
+        && (!("visitDate" in request.resource.data) || (request.resource.data.visitDate is string && request.resource.data.visitDate.size() <= 20))
+        && (!("visitType" in request.resource.data) || (request.resource.data.visitType is string && request.resource.data.visitType.size() <= 20))
+        && (!("geminiModel" in request.resource.data) || (request.resource.data.geminiModel is string && request.resource.data.geminiModel.size() <= 80))
+        && (!("recordingDuration" in request.resource.data) || (request.resource.data.recordingDuration is string && request.resource.data.recordingDuration.size() <= 20))
+        && (!("geminiAttempts" in request.resource.data) || (request.resource.data.geminiAttempts is string && request.resource.data.geminiAttempts.size() <= 10));
+      allow update, delete: if false;
+    }
+
+    match /{path=**}/notes/{noteId} {
+      allow read: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
