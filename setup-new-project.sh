@@ -8,7 +8,7 @@ REPO_NAME="${REPO_NAME:-woyz-notes-aster}"
 DISPLAY_NAME="${DISPLAY_NAME:-WOYZ Notes Aster}"
 GITHUB_VISIBILITY="${GITHUB_VISIBILITY:-public}"
 FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-asia-south1}"
-PROJECT_ID="${FIREBASE_PROJECT_ID:-woyz-notes-aster-$(date -u +%Y%m%d%H%M%S)-$(printf '%04x' "$((RANDOM % 65536))")}"
+PROJECT_ID="${FIREBASE_PROJECT_ID:-woyz-aster-$(date -u +%s)-$(printf '%02x' "$((RANDOM % 256))")}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -28,17 +28,10 @@ esac
 [[ -f firestore.rules ]] || fail "firestore.rules is missing."
 [[ -f firebase.json ]] || fail "firebase.json is missing."
 
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  fail "This folder is inside an existing Git repository. Extract the handover into a completely separate folder and try again."
-fi
-
 gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not signed in. Run: gh auth login"
 firebase login:list >/dev/null 2>&1 || fail "Firebase CLI is not signed in. Run: firebase login"
 
 GITHUB_OWNER="$(gh api user --jq .login)"
-if gh repo view "$GITHUB_OWNER/$REPO_NAME" >/dev/null 2>&1; then
-  fail "GitHub repository $GITHUB_OWNER/$REPO_NAME already exists. Nothing was changed."
-fi
 
 if firebase projects:list --json | node -e '
 let input="";
@@ -57,20 +50,26 @@ echo
 echo "A NEW setup will be created."
 echo "GitHub:   $GITHUB_OWNER/$REPO_NAME ($GITHUB_VISIBILITY)"
 echo "Firebase: $DISPLAY_NAME"
-echo "Project:  $PROJECT_ID"
+echo "Project:  $PROJECT_ID (length: ${#PROJECT_ID})"
 echo "Firestore location: $FIRESTORE_LOCATION"
 echo
 echo "No existing GitHub repository or Firebase project will be selected, reused, renamed, or modified."
 read -r -p 'Type CREATE NEW WOYZ NOTES to continue: ' confirmation
 [[ "$confirmation" == "CREATE NEW WOYZ NOTES" ]] || fail "Confirmation did not match. Nothing was changed."
 
-echo "Creating a new local Git repository..."
-git init -b main
-git add .
-git commit -m "Initial WOYZ Notes application"
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Creating a new local Git repository..."
+  git init -b main
+  git add .
+  git commit -m "Initial WOYZ Notes application"
+fi
 
-echo "Creating a brand-new GitHub repository..."
-gh repo create "$REPO_NAME" "--$GITHUB_VISIBILITY" --source=. --remote=origin --description "WOYZ Notes" --push
+if ! gh repo view "$GITHUB_OWNER/$REPO_NAME" >/dev/null 2>&1; then
+  echo "Creating a brand-new GitHub repository..."
+  gh repo create "$REPO_NAME" "--$GITHUB_VISIBILITY" --source=. --remote=origin --description "WOYZ Notes" --push
+else
+  echo "GitHub repository $GITHUB_OWNER/$REPO_NAME already exists. Proceeding with Firebase creation..."
+fi
 
 echo "Creating a brand-new Firebase project..."
 firebase projects:create "$PROJECT_ID" --display-name "$DISPLAY_NAME"
