@@ -275,7 +275,7 @@ async function syncUserMappings(){
       adminSharedWith,
       sharedWith,
       mappingUpdatedAt:serverTimestamp(),
-      mappingUpdatedBy:MASTER_ADMIN_UID
+      mappingUpdatedBy: (auth.currentUser ? auth.currentUser.uid : MASTER_ADMIN_UID)
     },{merge:true});
   });
   await Promise.all(writes);
@@ -367,7 +367,7 @@ groupForm.addEventListener('submit', async event => {
       adminUids:adminUidsForEmails(admins),
       createdAt:serverTimestamp(),
       mappingUpdatedAt:serverTimestamp(),
-      mappingUpdatedBy:MASTER_ADMIN_UID
+      mappingUpdatedBy: (auth.currentUser ? auth.currentUser.uid : MASTER_ADMIN_UID)
     });
     safeLogActivity('group_created', {
       noteId:groupRef.id,
