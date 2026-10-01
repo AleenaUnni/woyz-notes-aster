@@ -24,7 +24,7 @@ case "$GITHUB_VISIBILITY" in
   *) fail "GITHUB_VISIBILITY must be public, private, or internal." ;;
 esac
 
-[[ -f index.html ]] || fail "Run this script from the extracted handover folder."
+[[ -f frontend/index.html ]] || [[ -f index.html ]] || fail "Run this script from the extracted handover folder."
 [[ -f firestore.rules ]] || fail "firestore.rules is missing."
 [[ -f firebase.json ]] || fail "firebase.json is missing."
 
@@ -103,7 +103,9 @@ if(typeof config === "string") {
 const allowed=["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId","measurementId"];
 const clean=Object.fromEntries(allowed.filter(key=>config[key] != null).map(key=>[key,config[key]]));
 if(!clean.apiKey || !clean.projectId || !clean.appId) throw new Error("SDK configuration is incomplete.");
-fs.writeFileSync("firebase-config.js",`export const firebaseConfig = ${JSON.stringify(clean,null,2)};\n`);
+const content = `export const firebaseConfig = ${JSON.stringify(clean,null,2)};\n`;
+fs.writeFileSync("frontend/src/firebase-config.js", content);
+if (fs.existsSync("frontend/public")) fs.writeFileSync("frontend/public/firebase-config.js", content);
 ' "$temporary_dir/sdk.json"
 
 cat > .firebaserc <<EOF
@@ -117,7 +119,7 @@ EOF
 echo "Deploying only the included Firestore rules to the NEW project..."
 firebase deploy --only firestore:rules --project "$PROJECT_ID"
 
-git add firebase-config.js .firebaserc
+git add frontend/src/firebase-config.js frontend/public/firebase-config.js .firebaserc
 git commit -m "Configure new Firebase project"
 git push origin main
 

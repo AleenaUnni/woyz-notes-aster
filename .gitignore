@@ -1,4 +1,31 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Production build outputs & caches
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+
+# Firebase CLI cache, project alias & logs
+.firebase/
+.firebaserc
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+hub-debug.log*
+
+# Environment and Secret configuration files
+.env
+.env.local
+.env.*.local
+*.env
+serviceAccountKey.json
+*-firebase-*.json
+
+# OS & System files
 .DS_Store
+Thumbs.db
 *.log
+
